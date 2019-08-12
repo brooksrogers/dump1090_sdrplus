@@ -172,6 +172,7 @@ struct {
     int rf_gain;
     int lna_gain;
     int vga_gain;
+    int power_antenna;
     hackrf_device *hackrf;
 
     /* ... but AirSpy needs to be resampled */
@@ -310,6 +311,7 @@ void modesInitConfig(void) {
     Modes.rf_gain = 0;
     Modes.lna_gain = 0;
     Modes.vga_gain = 0;
+    Modes.power_antenna = 0;
     Modes.freq = MODES_DEFAULT_FREQ;
     Modes.filename = NULL;
     Modes.fix_errors = 1;
@@ -587,6 +589,9 @@ int modesInitHackRF(void) {
 
     status = hackrf_set_vga_gain(Modes.hackrf, Modes.vga_gain);
     HACKRF_STATUS(status, "hackrf_set_vga_gain failed");
+
+    status = hackrf_set_antenna_enable(Modes.hackrf, Modes.power_antenna);
+    HACKRF_STATUS(status, "hackrf_set_power_antenna failed");
 
     fprintf (stderr, "HackRF successfully initialized "
                      "(AMP Enable: %i, LNA Gain: %i, VGA Gain: %i).\n",
@@ -2887,6 +2892,7 @@ void showHelp(void) {
 "--gain <db>              Set RTLSDR gain (default: max gain. Use -100 for auto-gain).\n"
 "--enable-agc             Enable RTLSDR Automatic Gain Control (default: off).\n"
 "--enable-amp             Enable HackRF RX/TX RF amplifier (default: off).\n"
+"--enable-antenna         Enable HackRF antenna port power (default: off)\n"
 "--rf-gain                Set RX AMP (RF) gain\n"
 "                         HackRF 0 or 14, default 0\n"
 "                         AirSpy 0-14, step 1, default 11\n"
@@ -2996,6 +3002,8 @@ int main(int argc, char **argv) {
             Modes.enable_agc++;
         } else if (!strcmp(argv[j],"--enable-amp")) {
             Modes.rf_gain = 14;
+        } else if (!strcmp(argv[j],"--enable-antenna")) {
+            Modes.power_antenna = 1;
         } else if (!strcmp(argv[j],"--rf-gain")) {
             Modes.rf_gain =  atoi(argv[++j]);
         } else if (!strcmp(argv[j],"--lna-gain")) {
