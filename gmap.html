@@ -41,18 +41,18 @@
     <div id="map_canvas" style="width:80%; height:100%"></div>
     <div id="info">
       <div>
-        <h1>Dump1090</h1>
+        <h1>Dump1090_sdrplus</h1>
         <p id="geninfo"></p>
         <p id="selinfo">Click on a plane for info.</p>
       </div>
     </div>
     <script type="text/javascript">
-    Map=null;
+    GMap=null;
     CenterLat=45.0;
     CenterLon=9.0;
     Planes={};
     NumPlanes = 0;
-    Selected=null
+    Selected=null;
 
     function getIconForPlane(plane) {
         var r = 255, g = 255, b = 0;
