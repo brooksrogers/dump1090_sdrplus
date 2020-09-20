@@ -2226,7 +2226,8 @@ struct aircraft *interactiveReceiveData(struct modesMessage *mm) {
             }
             /* If the two data is less than 10 seconds apart, compute
              * the position. */
-            if (abs(a->even_cprtime - a->odd_cprtime) <= 10000) {
+            int x = a->even_cprtime - a->odd_cprtime;
+            if (-10000 <= x && x <= 10000) {
                 decodeCPR(a);
             }
         } else if (mm->metype == 19) {
