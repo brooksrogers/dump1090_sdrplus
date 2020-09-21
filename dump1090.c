@@ -50,7 +50,9 @@
 #include "rtl-sdr.h"
 #include "libhackrf/hackrf.h"
 #include "libairspy/airspy.h"
+#ifndef NoSDRplay
 #include "mirsdrapi-rsp.h"
+#endif
 #include "soxr.h"
 #include "anet.h"
 
@@ -158,7 +160,9 @@ struct {
     int prefer_airspy;
     int prefer_hackrf;
     int prefer_rtlsdr;
+#ifndef NoSDRplay
     int prefer_sdrplay;
+#endif
 
     /* RTLSDR */
     int rtl_enabled;
@@ -182,11 +186,13 @@ struct {
     char *airspy_bytes, *airspy_scratch;
     int support_10MSPS;
 
+#ifndef NoSDRplay
     /* SDRplay */
     int sdrplay_enabled;
     int sdrplaySamplesPerPacket;
     short *sdrplay_i;
     short *sdrplay_q;
+#endif
 
     /* SDR Common */
     int freq;
@@ -438,7 +444,9 @@ int modesInitRTLSDR(void) {
     Modes.rtl_enabled = 1;
     Modes.hackrf_enabled = 0;
     Modes.airspy_enabled = 0;
+#ifndef NoSDRplay
     Modes.sdrplay_enabled = 0;
+#endif
     return (0);
 }
 
@@ -547,8 +555,9 @@ int modesInitAirSpy(void) {
     Modes.airspy_enabled = 1;
     Modes.rtl_enabled = 0;
     Modes.hackrf_enabled = 0;
+#ifndef NoSDRplay
     Modes.sdrplay_enabled = 0;
-
+#endif
     return (0);
 }
 
@@ -600,11 +609,13 @@ int modesInitHackRF(void) {
     Modes.hackrf_enabled = 1;
     Modes.airspy_enabled = 0;
     Modes.rtl_enabled = 0;
+#ifndef NoSDRplay
     Modes.sdrplay_enabled = 0;
-
+#endif
     return (0);
 }
 
+#ifndef NoSDRplay
 /* =============================== SDRplay handling ========================== */
 int modesInitSDRplay(void) {
 
@@ -653,6 +664,7 @@ int modesInitSDRplay(void) {
 
     return (0);
 }
+#endif
 
 /* We use a thread reading data in background, while the main thread
  * handles decoding and visualization of data to the user.
@@ -776,6 +788,7 @@ void readDataFromFile(void) {
     }
 }
 
+#ifndef NoSDRplay
 int sdrplay_start_rx(void) {
 	unsigned int data_index, firstSampleNum;
     int grChanged, rfChanged, fsChanged;
@@ -841,6 +854,7 @@ int sdrplay_start_rx(void) {
     }
     return (err)? 1 : 0;
 }
+#endif
 
 /* We read data using a thread, so the main thread only handles decoding
  * without caring about data acquisition. */
@@ -868,7 +882,9 @@ void *readerThreadEntryPoint(void *arg) {
                 airspy_exit();
                 exit (1);
             }
-        } else if (Modes.sdrplay_enabled) {
+        }
+#ifndef NoSDRplay
+        else if (Modes.sdrplay_enabled) {
             int status = sdrplay_start_rx();
             if (status != 0) {
                 fprintf(stderr, "sdrplay_start_rx failed");
@@ -876,6 +892,7 @@ void *readerThreadEntryPoint(void *arg) {
                 exit (1);
             }
         }       
+#endif
     } else {
         readDataFromFile();
     }
@@ -2209,7 +2226,8 @@ struct aircraft *interactiveReceiveData(struct modesMessage *mm) {
             }
             /* If the two data is less than 10 seconds apart, compute
              * the position. */
-            if (abs(a->even_cprtime - a->odd_cprtime) <= 10000) {
+            int x = a->even_cprtime - a->odd_cprtime;
+            if (-10000 <= x && x <= 10000) {
                 decodeCPR(a);
             }
         } else if (mm->metype == 19) {
@@ -2888,7 +2906,9 @@ void showHelp(void) {
 "--dev-rtl                use RTLSDR device.\n"
 "--dev-hackrf             use HackRF device.\n"
 "--dev-airspy             use AirSpy device.\n"
+#ifndef NoSDRplay
 "--dev-sdrplay            use RSP device.\n"
+#endif
 "--gain <db>              Set RTLSDR gain (default: max gain. Use -100 for auto-gain).\n"
 "--enable-agc             Enable RTLSDR Automatic Gain Control (default: off).\n"
 "--enable-amp             Enable HackRF RX/TX RF amplifier (default: off).\n"
@@ -2964,7 +2984,9 @@ void backgroundTasks(void) {
 void INTHandler(int sig)
 {
     signal(sig, SIG_IGN);
+#ifndef NoSDRplay
     mir_sdr_Uninit();
+#endif
     exit(0);
 }
 
@@ -2982,9 +3004,13 @@ int main(int argc, char **argv) {
 
         if (!strcmp(argv[j],"--device-index") && more) {
             Modes.dev_index = atoi(argv[++j]);
-        } else if (!strcmp(argv[j],"--dev-sdrplay")) {
+        }
+#ifndef NoSDRplay
+        else if (!strcmp(argv[j],"--dev-sdrplay")) {
             Modes.prefer_sdrplay = 1;
-        } else if (!strcmp(argv[j],"--dev-airspy")) {
+        }
+#endif
+        else if (!strcmp(argv[j],"--dev-airspy")) {
             Modes.rf_gain = AIRSPY_RF_GAIN;
             Modes.lna_gain = AIRSPY_LNA_GAIN;
             Modes.vga_gain = AIRSPY_VGA_GAIN;
@@ -3082,10 +3108,17 @@ int main(int argc, char **argv) {
         }
     }
 
-    if ((Modes.prefer_airspy + Modes.prefer_hackrf + Modes.prefer_rtlsdr + Modes.prefer_sdrplay) > 1) {
+    if ((Modes.prefer_airspy + Modes.prefer_hackrf + Modes.prefer_rtlsdr
+#ifndef NoSDRplay
+        + Modes.prefer_sdrplay
+#endif
+        ) > 1) {
         showHelp();
-        fprintf(stderr,
-            "\n\nError: dev-{sdrplay,airspy,hackrf,rtlsdr} are mutually exclusive.\n");
+        fprintf(stderr, "\n\nError: dev-{"
+#ifndef NoSDRplay
+            "sdrplay,"
+#endif
+            "airspy,hackrf,rtlsdr} are mutually exclusive.\n");
         exit(1);
     }
 
@@ -3097,13 +3130,29 @@ int main(int argc, char **argv) {
     if (Modes.net_only) {
         fprintf(stderr,"Net-only mode, no RTL device or file open.\n");
     } else if (Modes.filename == NULL) {
-        if ((Modes.prefer_airspy + Modes.prefer_hackrf + Modes.prefer_sdrplay) == 0 && modesInitRTLSDR() == 0) {
+        if ((Modes.prefer_airspy + Modes.prefer_hackrf
+#ifndef NoSDRplay
+            + Modes.prefer_sdrplay
+#endif
+            ) == 0 && modesInitRTLSDR() == 0) {
             Modes.rtl_enabled = 1;
-        } else if ((Modes.prefer_hackrf + Modes.prefer_airspy + Modes.prefer_rtlsdr ) == 0 &&  modesInitSDRplay() == 0 ) {
+        }
+#ifndef NoSDRplay
+        else if ((Modes.prefer_hackrf + Modes.prefer_airspy + Modes.prefer_rtlsdr ) == 0 &&  modesInitSDRplay() == 0 ) {
             Modes.sdrplay_enabled =  1;
-        } else if ((Modes.prefer_sdrplay + Modes.prefer_airspy + Modes.prefer_rtlsdr ) == 0 &&  modesInitHackRF() == 0 ) {
+        }
+#endif
+        else if ((
+#ifndef NoSDRplay
+            Modes.prefer_sdrplay +
+#endif
+            Modes.prefer_airspy + Modes.prefer_rtlsdr ) == 0 &&  modesInitHackRF() == 0 ) {
             Modes.hackrf_enabled =  1;
-        } else if ((Modes.prefer_sdrplay + Modes.prefer_rtlsdr + Modes.prefer_hackrf ) == 0 &&  modesInitAirSpy() == 0 ) {
+        } else if ((
+#ifndef NoSDRplay
+            Modes.prefer_sdrplay +
+#endif
+            Modes.prefer_rtlsdr + Modes.prefer_hackrf ) == 0 &&  modesInitAirSpy() == 0 ) {
             Modes.airspy_enabled =  1;
         } else {
             fprintf(stderr,"No compatible SDR device found.\n");

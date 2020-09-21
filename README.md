@@ -1,16 +1,17 @@
-Dump1090_sdrplus README
-===
+## Dump1090\_sdrplus
 
 <img src='https://raw.githubusercontent.com/itemir/dump1090_sdrplus/master/images/dump1090_sdrplus.png' align='left' width='300' hspace='25' vspace='10'>
-Dump1090_sdrplus is a Mode S decoder specifically designed for SDR devices including [RTLSDR](http://www.rtl-sdr.com/), [HackRF One](https://greatscottgadgets.com/hackrf/), [Airspy](http://airspy.com/) and [SDRplay](http://www.sdrplay.com/). It is a fork of original [dump1090](https://github.com/antirez/dump1090) with support for additional SDR devices.
+
+Dump1090\_sdrplus is a Mode S decoder (see [ADS-B](https://en.wikipedia.org/wiki/ADS-B)) specifically designed for SDR devices including [RTLSDR](http://www.rtl-sdr.com/), [HackRF One](https://greatscottgadgets.com/hackrf/), [Airspy](http://airspy.com/) and [SDRplay](http://www.sdrplay.com/). It is a fork of Salvatore Sanfilippo's original [dump1090](https://github.com/antirez/dump1090) with support for additional SDR devices.
 
 The main features are:
 
-* Robust decoding of weak messages, with mode1090 many users observed
+* Robust decoding of weak messages, with dump1090 many users observed
   improved range compared to other popular decoders.
 * Network support: TCP30003 stream (MSG5...), Raw packets, HTTP.
-* Embedded HTTP server that displays the currently detected aircrafts on
-  Google Map.
+* Embedded HTTP server that displays currently detected aircrafts on
+  Google Maps. Remember to replace `YOURGOOGLEKEY` in `gmap.html` with
+  your `Maps Javascript API`-enabled [key](https://console.cloud.google.com/apis/credentials) to view it in browser.
 * Single bit errors correction using the 24 bit CRC.
 * Ability to decode DF11, DF17 messages.
 * Ability to decode DF formats like DF0, DF4, DF5, DF16, DF20 and DF21
@@ -23,27 +24,24 @@ The main features are:
 * TCP server streaming and receiving raw data to/from connected clients
   (using --net).
 
-This is a fork of Salvatore Sanfilippo's [original dump1090](https://github.com/antirez/dump1090)
-with additional [HackRF](https://github.com/mossmann/hackrf), [AirSpy](https://github.com/airspy/) 
-and [SDRplay](http://www.sdrplay.com/) support.
-
-Installation
----
+### Installation
 
 Type in the shell
     
     sudo apt-get install librtlsdr0 librtlsdr-dev libhackrf-dev libairspy-dev libsoxr-dev
 
-Next, download SDRPlay libraries from: http://www.sdrplay.com/linuxdl.php
+If you want to enable SDRPlay, download libraries from http://www.sdrplay.com/linuxdl.php and
 
     chmod 755 SDRplay_RSP_API-Linux-2.13.1.run
     ./SDRplay_RSP_API-Linux-2.13.1.run
     sudo ldconfig
+    make
 
-Finally, Type "make".
+else
 
-Normal usage
----
+    make NoSDRplay=1
+
+### Normal usage
 
 To capture traffic directly from your RTL device and show the captured traffic
 on standard output, just run the program without options at all:
@@ -65,28 +63,27 @@ with your browser to http://localhost:8080 to see live traffic:
 
 In iteractive mode it is possible to have a less information dense but more
 "arcade style" output, where the screen is refreshed every second displaying
-all the recently seen aircrafts with some additional information such as
-altitude and flight number, extracted from the received Mode S packets.
+all recently seen aircrafts with some additional information such as
+altitude and flight number, extracted from received Mode S packets.
 
-Using files as source of data
----
+### Using files as source of data
 
-To decode data from file, use:
+To decode data from a file, use:
 
     ./dump1090 --ifile /path/to/binfile
 
 The binary file can be created using `rtl_sdr` or `hackrf_transfer` (requires 
-conversion). File contents need to be 8-bit unsigned IQ samples at 2Mhz sample rate.
+conversion). File contents need to be 8-bit unsigned IQ samples at 2 Mhz sample rate.
 
-Example with rtl_sdr:
+Example with rtl\_sdr:
 
     rtl_sdr -f 1090000000 -s 2000000 -g 50 output.bin
 
 In the example a gain of 50 is used, simply you should use the highest gain availabe
-for your tuner. This is not needed when calling Dump1090 itself as it is able to 
+for your tuner. This is not needed when calling dump1090 itself as it is able to 
 select the highest gain supported automatically.
 
-Example with hackrf_transfer:
+Example with hackrf\_transfer:
 
     hackrf_transfer -r output.sb -f 1090000000 -s 2000000 -p 0 -a 0 -l 32 -g 48
     sox -r 2000000 -c 1 output.sb output.ub
@@ -99,21 +96,16 @@ unsigned IQ values.
 It is possible to feed the program with data via standard input using
 the --ifile option with "-" as argument.
 
-Additional options
----
+### Additional options
 
-Dump1090 can be called with other command line options to set a different
+dump1090 can be called with other command line options to set a different
 gain, frequency, and so forth. For a list of options use:
 
     ./dump1090 --help
 
-Everything is not documented here should be obvious, and for most users calling
-it without arguments at all is the best thing to do.
+### Reliability
 
-Reliability
----
-
-By default Dump1090 tries to fix single bit errors using the checksum.
+By default dump1090 tries to fix single bit errors using the checksum.
 Basically the program will try to flip every bit of the message and check if
 the checksum of the resulting message matches.
 
@@ -121,27 +113,24 @@ This is indeed able to fix errors and works reliably in my experience,
 however if you are interested in very reliable data I suggest to use
 the --no-fix command line switch in order to disable error fixing.
 
-Performances and sensibility of detection
----
+### Performances and sensibility of detection
 
-In my limited experience Dump1090 was able to decode a big number of messages
+In my limited experience dump1090 was able to decode a big number of messages
 even in conditions where I encountered problems using other programs, however
 no formal test was performed so I can't really claim that this program is
 better or worse compared to other similar programs.
 
-If you can capture traffic that Dump1090 is not able to decode properly, drop
+If you can capture traffic that dump1090 is not able to decode properly, drop
 me an email with a download link. I may try to improve the detection during
-my free time (this is just an hobby project).
+my free time (this is just a hobby project).
 
-Network server features
----
+### Network server features
 
-By enabling the networking support with --net Dump1090 starts listening
-for clients connections on port 30002 and 30001 (you can change both the
+By enabling the networking support with --net dump1090 starts listening
+for client connections on port 30002 and 30001 (you can change both
 ports if you want, see --help output).
 
-Port 30002
----
+### Port 30002
 
 Connected clients are served with data ASAP as they arrive from the device
 (or from file if --ifile is used) in the raw format similar to the following:
@@ -150,15 +139,14 @@ Connected clients are served with data ASAP as they arrive from the device
 
 Every entry is separated by a simple newline (LF character, hex 0x0A).
 
-Port 30001
----
+### Port 30001
 
-Port 30001 is the raw input port, and can be used to feed Dump1090 with
+Port 30001 is the raw input port, and can be used to feed dump1090 with
 data in the same format as specified above, with hex messages starting with
 a `*` and ending with a `;` character.
 
-So for instance if there is another remote Dump1090 instance collecting data
-it is possible to sum the output to a local Dump1090 instance doing something
+So for instance if there is another remote dump1090 instance collecting data
+it is possible to accumulate the output to a local dump1090 instance doing something
 like this:
 
     nc remote-dump1090.example.net 30002 | nc localhost 30001
@@ -169,7 +157,7 @@ broadcasted to clients listening to port 30002.
 In general everything received from port 30001 is handled exactly like the
 normal traffic from RTL devices or from file when --ifile is used.
 
-It is possible to use Dump1090 just as an hub using --ifile with /dev/zero
+It is possible to use dump1090 just as a hub using --ifile with /dev/zero
 as argument as in the following example:
 
     ./dump1090 --net-only
@@ -180,8 +168,7 @@ Or alternatively to see what's happening on the screen:
 
 Then you can feed it from different data sources from the internet.
 
-Port 30003
----
+### Port 30003
 
 Connected clients are served with messages in SBS1 (BaseStation) format,
 similar to:
@@ -191,10 +178,9 @@ similar to:
 
 This can be used to feed data to various sharing sites without the need to use another decoder.
 
-Antenna
----
+### Antenna
 
-Mode S messages are transmitted in the 1090 Mhz frequency. If you have a decent
+Mode S messages are transmitted at 1090 Mhz. If you have a decent
 antenna you'll be able to pick up signals from aircrafts pretty far from your
 position, especially if you are outdoor and in a position with a good sky view.
 
@@ -212,8 +198,7 @@ resources:
 * http://www.lll.lu/~edward/edward/adsb/antenna/ADSBantenna.html
 * http://modesbeast.com/pix/adsb-ant-drawing.gif
 
-Aggressive mode
----
+### Aggressive mode
 
 With --aggressive it is possible to activate the *aggressive mode* that is a
 modified version of the Mode S packet detection and decoding.
@@ -227,17 +212,16 @@ The algorithm in aggressive mode is modified in the following ways:
   checked.
 * It tries to fix DF17 messages trying every two bits combination.
 
-The use of aggressive mdoe is only advised in places where there is low traffic
+The use of aggressive mode is only advised in places where there is low traffic
 in order to have a chance to capture some more messages.
 
-Debug mode
----
+### Debug mode
 
 The Debug mode is a visual help to improve the detection algorithm or to
 understand why the program is not working for a given input.
 
 In this mode messages are displayed in an ASCII-art style graphical
-representation, where the individial magnitude bars sampled at 2Mhz are
+representation, where the individial magnitude bars sampled at 2 Mhz are
 displayed.
 
 An index shows the sample number, where 0 is the sample where the first
@@ -245,43 +229,40 @@ Mode S peak was found. Some additional background noise is also added
 before the first peak to provide some context.
 
 To enable debug mode and check what combinations of packets you can
-log, use `mode1090 --help` to obtain a list of available debug flags.
+log, use --help to obtain a list of available debug flags.
 
 Debug mode includes an optional javascript output that is used to visualize
 packets using a web browser, you can use the file debug.html under the
 'tools' directory to load the generated frames.js file.
 
-How this program works?
----
+### How this program works?
 
-The code is very documented and written in order to be easy to understand.
+The code is clearly commented in order to be easy to understand.
 For the diligent programmer with a Mode S specification on his hands it
 should be trivial to understand how it works.
 
 The algorithms I used were obtained basically looking at many messages
-as displayed using a trow-away SDL program, and trying to model the algorithm
+as displayed using a throw-away SDL program, and trying to model the algorithm
 based on how the messages look graphically.
 
-How to test the program?
----
+### How to test the program?
 
 If you have an RTLSDR device and you happen to be in an area where there
 are aircrafts flying over your head, just run the program and check for signals.
 
-However if you don't have an RTLSDR device, or if in your area the presence
-of aircrafts is very limited, you may want to try the sample file distributed
-with the Dump1090 distribution under the "testfiles" directory.
+However if you don't have an RTLSDR device, or if the presence of aircrafts
+is very limited in your area, you may want to try the sample file distributed
+with the dump1090 distribution under the "testfiles" directory.
 
 Just run it like this:
 
     ./dump1090 --ifile testfiles/modes1.bin
 
-What is --strip mode?
----
+### What is --strip mode?
 
 It is just a simple filter that will get raw IQ 8 bit samples in input
 and will output a file missing all the parts of the file where I and Q
-are lower than the specified <level> for more than 32 samples.
+are lower than the specified level for more than 32 samples.
 
 Use it like this:
 
@@ -290,19 +271,17 @@ Use it like this:
 I used it in order to create a small test file to include inside this
 program source code distribution.
 
-Contributing
----
+### Contributing
 
-Dump1090 was written during some free time during xmas 2012, it is an hobby
+dump1090 was written during some free time during xmas 2012, it is a hobby
 project so I'll be able to address issues and improve it only during
-free time, however you are incouraged to send pull requests in order to
+free time, however you are encouraged to send pull requests in order to
 improve the program. A good starting point can be the TODO list included in
 the source distribution.
 
-Credits
----
+### Credits
 
-Dump1090 was written by [Salvatore Sanfilippo](https://github.com/antirez) and
+dump1090 was written by [Salvatore Sanfilippo](https://github.com/antirez) and
 is released under the BSD three clause license. HackRF One support was added by
 [Ilker Temir](https://github.com/itemir). AirSpy support was added by
 [Chris Kuethe](https://github.com/ckuethe). SDRplay support was added by
