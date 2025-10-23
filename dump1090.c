@@ -131,7 +131,10 @@ struct aircraft
     int track;       /* Angle of flight. */
     time_t seen;     /* Time at which the last packet was received. */
     long messages;   /* Number of Mode S messages received. */
+    int version;
+    int adsb_version;
     /* Encoded latitude and longitude as extracted by odd and even
+
      * CPR encoded messages. */
     int odd_cprlat;
     int odd_cprlon;
@@ -2567,6 +2570,11 @@ struct aircraft *interactiveReceiveData(struct modesMessage *mm)
                 a->track = mm->heading;
             }
         }
+        else if (mm->msgtype == 17 && mm->metype == 31)
+        {
+            /* Store ADS-B Operational Status Version (DO-260 / DO-260A / DO-260B) */
+            a->adsb_version = mm->adsb_version;
+        }
     }
     return a;
 }
@@ -2585,7 +2593,7 @@ void interactiveShowData(void)
 
     printf("\x1b[H\x1b[2J"); /* Clear the screen */
     printf(
-        "Hex    Flight   Altitude  Speed   Lat       Lon       Track  Messages Seen %s\n"
+        "Hex    Flight   Altitude  Speed   Lat       Lon       Track  Messages Seen   Ver%s\n"
         "--------------------------------------------------------------------------------\n",
         progress);
 
@@ -2925,19 +2933,23 @@ void modesSendSBSOutput(struct modesMessage *mm, struct aircraft *a)
     else if (mm->msgtype == 17 && mm->metype >= 9 && mm->metype <= 18)
     {
         if (a->lat == 0 && a->lon == 0)
-            p += sprintf(p, "MSG,3,,,%02X%02X%02X,,,,,,,%d,,,,,,,0,0,0,0",
-                         mm->aa1, mm->aa2, mm->aa3, mm->altitude);
+            p += sprintf(p,
+                         "MSG,3,,,%02X%02X%02X,,,,,,,%d,,,,,,,0,0,0,0,V%d",
+                         mm->aa1, mm->aa2, mm->aa3, mm->altitude, a->adsb_version);
         else
-            p += sprintf(p, "MSG,3,,,%02X%02X%02X,,,,,,,%d,,,%1.5f,%1.5f,,,"
-                            "0,0,0,0",
-                         mm->aa1, mm->aa2, mm->aa3, mm->altitude, a->lat, a->lon);
+            p += sprintf(p,
+                         "MSG,3,,,%02X%02X%02X,,,,,,,%d,,,%1.5f,%1.5f,,,0,0,0,0,V%d",
+                         mm->aa1, mm->aa2, mm->aa3,
+                         mm->altitude, a->lat, a->lon, a->adsb_version);
     }
+
     else if (mm->msgtype == 17 && mm->metype == 19 && mm->mesub == 1)
     {
         int vr = (mm->vert_rate_sign == 0 ? 1 : -1) * (mm->vert_rate - 1) * 64;
 
-        p += sprintf(p, "MSG,4,,,%02X%02X%02X,,,,,,,,%d,%d,,,%i,,0,0,0,0",
-                     mm->aa1, mm->aa2, mm->aa3, a->speed, a->track, vr);
+        p += sprintf(p,
+                     "MSG,4,,,%02X%02X%02X,,,,,,,,%d,%d,,,%i,,0,0,0,0,V%d",
+                     mm->aa1, mm->aa2, mm->aa3, a->speed, a->track, vr, a->adsb_version);
     }
     else if (mm->msgtype == 21)
     {
