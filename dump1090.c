@@ -2592,10 +2592,10 @@ void interactiveShowData(void)
     progress[3] = '\0';
 
     printf("\x1b[H\x1b[2J"); /* Clear the screen */
-    printf(
-        "Hex    Flight   Altitude  Speed   Lat       Lon       Track  Messages Seen   Ver%s\n"
-        "--------------------------------------------------------------------------------\n",
-        progress);
+    printf("%06X %-8s %6d %5d %7.03f %7.03f %3d %5ld %d  V%d\n",
+           a->addr, a->flight, a->altitude, a->speed,
+           a->lat, a->lon, a->track, a->messages,
+           (int)(now - a->seen), a->adsb_version);
 
     while (a && count < Modes.interactive_rows)
     {
